@@ -383,12 +383,12 @@ function createCustomOperationHooks<
             case 'query':
             case 'suspenseQuery':
                 hooks[hookName] = (args?: unknown, options?: unknown) =>
-                    useInternalQuery(schema, modelName, name, args, merged(options as Accessor<unknown> | undefined));
+                    useInternalQuery(schema, modelName, name, toAccessor(args), merged(options));
                 break;
             case 'infiniteQuery':
             case 'suspenseInfiniteQuery':
                 hooks[hookName] = (args?: unknown, options?: unknown) => {
-                    const mergedOptions = merged(options as Accessor<unknown> | undefined);
+                    const mergedOptions = merged(options);
                     const withDefault = () => {
                         const value = mergedOptions?.() as any;
                         if (value && typeof value.getNextPageParam !== 'function') {
@@ -396,7 +396,13 @@ function createCustomOperationHooks<
                         }
                         return value;
                     };
-                    return useInternalInfiniteQuery(schema, modelName, name, args, withDefault as any);
+                    return useInternalInfiniteQuery(
+                        schema,
+                        modelName,
+                        name,
+                        toAccessor(args) ?? (() => undefined),
+                        withDefault as any,
+                    );
                 };
                 break;
             case 'mutation':
@@ -415,6 +421,13 @@ function createCustomOperationHooks<
     }
 
     return hooks as CustomOperationHooks<CustomOperations>;
+}
+
+function toAccessor<T>(value?: Accessor<T> | T): Accessor<T> | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    return typeof value === 'function' ? (value as Accessor<T>) : () => value;
 }
 
 export function useInternalQuery<TQueryFnData, TData>(

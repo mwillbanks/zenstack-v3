@@ -495,12 +495,26 @@ function createCustomOperationHooks<
     return hooks as CustomOperationHooks<CustomOperations>;
 }
 
-function buildInfiniteOptions(rootOptions: QueryContext | undefined, options: unknown) {
-    const merged = { ...(rootOptions ?? {}), ...((options as object) ?? {}) } as Record<string, unknown>;
+type InfiniteQueryOptionsWithContext = Omit<
+    UseInfiniteQueryOptions<any, DefaultError, InfiniteData<any>>,
+    'queryKey' | 'initialPageParam'
+> &
+    QueryContext;
+
+function buildInfiniteOptions(
+    rootOptions: QueryContext | undefined,
+    options: unknown,
+): InfiniteQueryOptionsWithContext {
+    const merged: Partial<InfiniteQueryOptionsWithContext> = {
+        ...(rootOptions ?? {}),
+        ...((options as object) ?? {}),
+    };
+
     if (typeof merged.getNextPageParam !== 'function') {
-        merged.getNextPageParam = () => undefined;
+        merged.getNextPageParam = (() => undefined) as InfiniteQueryOptionsWithContext['getNextPageParam'];
     }
-    return merged;
+
+    return merged as InfiniteQueryOptionsWithContext;
 }
 
 export function useInternalQuery<TQueryFnData, TData>(
